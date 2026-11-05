@@ -1,0 +1,285 @@
+
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#164b36">
+
+  <title>水蘊草 AR 觀察</title>
+
+  <!-- A-Frame -->
+  <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
+
+  <!-- MindAR -->
+  <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
+
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: "Microsoft JhengHei", Arial, sans-serif;
+      background: #eaf5ed;
+    }
+
+    #message {
+      position: fixed;
+      z-index: 10;
+      top: 15px;
+      left: 5%;
+      width: 90%;
+      padding: 14px;
+      border-radius: 14px;
+      background: rgba(17, 75, 48, 0.88);
+      color: white;
+      text-align: center;
+      font-size: 16px;
+      line-height: 1.6;
+      box-shadow: 0 3px 12px rgba(0,0,0,.15);
+    }
+
+    #startScreen {
+      position: fixed;
+      z-index: 20;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      padding: 25px;
+      text-align: center;
+      background: linear-gradient(160deg, #e4f5e8, #b8dfc2);
+    }
+
+    #startScreen h1 {
+      color: #205d3c;
+      font-size: 28px;
+    }
+
+    #startScreen p {
+      max-width: 330px;
+      color: #315c43;
+      line-height: 1.8;
+    }
+
+    #startButton {
+      border: none;
+      border-radius: 14px;
+      padding: 16px 32px;
+      margin-top: 18px;
+      background: #25834b;
+      color: white;
+      font-size: 20px;
+      cursor: pointer;
+    }
+
+    #startButton:disabled {
+      opacity: .6;
+    }
+
+    #backButton {
+      position: fixed;
+      z-index: 30;
+      bottom: 22px;
+      left: 50%;
+      transform: translateX(-50%);
+      border: none;
+      border-radius: 12px;
+      padding: 12px 24px;
+      background: rgba(255,255,255,.92);
+      color: #205d3c;
+      font-size: 16px;
+      cursor: pointer;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    a-scene {
+      position: fixed;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- 操作提示 -->
+  <div id="message">
+    🌿 歡迎來到水蘊草 AR 觀察
+  </div>
+
+  <!-- 開始畫面 -->
+  <div id="startScreen">
+    <h1>🌱 水蘊草 AR 觀察</h1>
+
+    <p>
+      請點選下方按鈕開啟相機，
+      接著將鏡頭對準水蘊草辨識圖片，
+      就能觀察 3D 水蘊草模型。
+    </p>
+
+    <button id="startButton">
+      開始 AR 觀察
+    </button>
+  </div>
+
+  <!-- 返回按鈕 -->
+  <button id="backButton" class="hidden"
+    onclick="window.location.href='https://luox0407.github.io/11-5/'">
+    返回 AR 首頁
+  </button>
+
+  <!-- AR 場景 -->
+  <a-scene
+    mindar-image="
+      imageTargetSrc: ./assets/targets.mind;
+      autoStart: false;
+      uiLoading: no;
+      uiScanning: no;
+      uiError: no;
+    "
+    color-space="sRGB"
+    renderer="
+      colorManagement: true;
+      physicallyCorrectLights: true;
+      antialias: true;
+    "
+    vr-mode-ui="enabled: false"
+    device-orientation-permission-ui="enabled: false"
+    embedded>
+
+    <!-- 模型資源 -->
+    <a-assets timeout="30000">
+      <a-asset-item
+        id="waterweedModel"
+        src="./assets/waterweed.glb">
+      </a-asset-item>
+    </a-assets>
+
+    <!-- 相機 -->
+    <a-camera
+      position="0 0 0"
+      look-controls="enabled: false">
+    </a-camera>
+
+    <!-- 圖片辨識目標 -->
+    <a-entity
+      id="waterweedTarget"
+      mindar-image-target="targetIndex: 0">
+
+      <!-- 水蘊草 3D 模型 -->
+      <a-gltf-model
+        id="waterweed3D"
+        src="#waterweedModel"
+        position="0 0 0"
+        rotation="0 0 0"
+        scale="0.2 0.2 0.2">
+      </a-gltf-model>
+
+    </a-entity>
+
+  </a-scene>
+
+  <script>
+    const scene = document.querySelector("a-scene");
+    const startButton = document.querySelector("#startButton");
+    const startScreen = document.querySelector("#startScreen");
+    const message = document.querySelector("#message");
+    const backButton = document.querySelector("#backButton");
+
+    const target = document.querySelector("#waterweedTarget");
+    const model = document.querySelector("#waterweed3D");
+
+    let modelLoaded = false;
+    let arStarted = false;
+
+    // 顯示訊息
+    function showMessage(text) {
+      message.textContent = text;
+    }
+
+    // 模型載入成功
+    model.addEventListener("model-loaded", function() {
+      modelLoaded = true;
+      console.log("水蘊草 3D 模型載入成功");
+
+      showMessage("3D 模型已準備完成，請對準水蘊草圖片 🌿");
+    });
+
+    // 模型載入失敗
+    model.addEventListener("model-error", function(event) {
+      console.error("模型載入失敗：", event);
+
+      showMessage("3D 模型載入失敗，請確認 waterweed.glb 檔案位置。");
+    });
+
+    // 開始 AR
+    startButton.addEventListener("click", async function() {
+
+      if (arStarted) return;
+
+      startButton.disabled = true;
+      startButton.textContent = "正在開啟相機……";
+
+      showMessage("正在準備 AR 相機，請稍候……");
+
+      try {
+        const arSystem = scene.systems["mindar-image-system"];
+
+        if (!arSystem) {
+          throw new Error("找不到 MindAR 系統，請確認程式載入。");
+        }
+
+        await arSystem.start();
+
+        arStarted = true;
+
+        startScreen.classList.add("hidden");
+        backButton.classList.remove("hidden");
+
+        showMessage("請將鏡頭對準新的水蘊草辨識圖片 🌿");
+
+      } catch (error) {
+        console.error("AR 啟動失敗：", error);
+
+        showMessage(
+          "無法開啟相機，請確認網頁使用 HTTPS，並允許相機權限。"
+        );
+
+        startButton.disabled = false;
+        startButton.textContent = "重新開始 AR 觀察";
+      }
+    });
+
+    // 成功辨識圖片
+    target.addEventListener("targetFound", function() {
+      console.log("成功辨識水蘊草圖片");
+
+      if (modelLoaded) {
+        showMessage("🎉 成功辨識！水蘊草 3D 模型出現了！");
+      } else {
+        showMessage("已辨識圖片，正在載入 3D 模型……");
+      }
+    });
+
+    // 圖片離開鏡頭
+    target.addEventListener("targetLost", function() {
+      showMessage("請重新將鏡頭對準水蘊草辨識圖片 🌱");
+    });
+
+    // 場景載入完成
+    scene.addEventListener("loaded", function() {
+      console.log("AR 場景載入完成");
+    });
+
+  </script>
+
+</body>
+</html>
