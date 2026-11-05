@@ -1,0 +1,365 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    * { box-sizing: border-box; }
+
+
+    body {
+      margin: 0;
+      font-family: Arial, "Noto Sans TC", sans-serif;
+      background: #f0f8f5;
+      color: #25483b;
+    }
+
+
+    header {
+      background: #277b62;
+      color: white;
+      text-align: center;
+      padding: 24px 12px;
+    }
+
+
+    main {
+      max-width: 850px;
+      margin: 24px auto;
+      padding: 0 16px;
+    }
+
+
+    .panel {
+      background: white;
+      border-radius: 16px;
+      padding: 22px;
+      margin-bottom: 18px;
+      box-shadow: 0 3px 12px #00000010;
+    }
+
+
+    h2 { color: #277b62; }
+
+
+    button {
+      background: #277b62;
+      color: white;
+      border: 0;
+      border-radius: 10px;
+      padding: 13px 20px;
+      font-size: 16px;
+      cursor: pointer;
+      margin: 5px 4px 5px 0;
+    }
+
+
+    button:disabled {
+      opacity: .5;
+      cursor: not-allowed;
+    }
+
+
+    input, textarea, select {
+      width: 100%;
+      padding: 12px;
+      margin: 7px 0 15px;
+      border: 1px solid #cbd9d2;
+      border-radius: 8px;
+      font-size: 16px;
+    }
+
+
+    label { display: block; }
+
+
+    .nav button { background: #e1eee8; color: #277b62; }
+    .nav button.active { background: #277b62; color: white; }
+
+
+    iframe {
+      width: 100%;
+      aspect-ratio: 16 / 9;
+      border: 0;
+      border-radius: 12px;
+    }
+
+
+    .question {
+      border-top: 1px solid #e5eee9;
+      padding: 15px 0;
+    }
+
+
+    .hidden { display: none; }
+    .hint { color: #6c8178; font-size: 14px; }
+    #message { font-weight: bold; }
+  </style>
+</head>
+
+
+<body>
+<header>
+  <h1>🌿 水蘊草探索學習平台</h1>
+  <p>一起觀察水蘊草，發現水中的植物奧秘！</p>
+</header>
+
+
+<main>
+  <section id="home" class="panel">
+    <h2>🎬 影片學習區</h2>
+    <p>請先觀看水蘊草學習影片，完成後按下開始學習。</p>
+
+
+    <iframe
+      src="https://www.youtube-nocookie.com/embed/VwZIjdXZXVU"
+      title="水蘊草學習影片"
+      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+      allowfullscreen>
+    </iframe>
+
+
+    <p class="hint">請觀看影片後，再按下方按鈕進入學習活動。</p>
+    <button onclick="startLearning()">開始學習</button>
+  </section>
+
+
+  <section id="learning" class="hidden">
+    <div class="panel">
+      <h2>👩‍🎓 學生資料</h2>
+
+
+      <label>班級</label>
+      <input id="className" placeholder="例如：1班">
+
+
+      <label>座號</label>
+      <input id="seatNumber" type="number" min="1" placeholder="請輸入座號">
+
+
+      <label>姓名</label>
+      <input id="studentName" placeholder="請輸入姓名">
+    </div>
+
+
+    <div class="panel">
+      <h2>📚 學習活動</h2>
+
+
+      <div class="nav">
+        <button id="arTab" class="active" onclick="showTab('ar')">
+          AR 觀察
+        </button>
+
+
+        <button id="worksheetTab" onclick="showTab('worksheet')">
+          學習單
+        </button>
+      </div>
+
+
+      <div id="arSection">
+        <h3>🔍 水蘊草 AR 觀察</h3>
+        <p>請點選下方按鈕，進入 AR 觀察活動。</p>
+
+
+        <button onclick="openAR()">進入 AR 觀察</button>
+
+
+        <p class="hint">
+          AR 網址尚未設定，完成後即可在此接入。
+        </p>
+      </div>
+
+
+      <div id="worksheetSection" class="hidden">
+        <h3>✏️ 水蘊草學習單</h3>
+        <div id="questions">正在載入題目……</div>
+
+
+        <button id="submitButton" onclick="submitAnswers()">
+          送出作答
+        </button>
+
+
+        <p id="message"></p>
+      </div>
+    </div>
+  </section>
+</main>
+
+
+<script>
+  let questions = [];
+  let answers = {};
+  let arUrl = '';
+
+
+  function startLearning() {
+    document.getElementById('home').classList.add('hidden');
+    document.getElementById('learning').classList.remove('hidden');
+    loadQuestions();
+  }
+
+
+  function showTab(tab) {
+    const isAR = tab === 'ar';
+
+
+    document.getElementById('arSection').classList.toggle('hidden', !isAR);
+    document.getElementById('worksheetSection').classList.toggle('hidden', isAR);
+
+
+    document.getElementById('arTab').classList.toggle('active', isAR);
+    document.getElementById('worksheetTab').classList.toggle('active', !isAR);
+  }
+
+
+  function openAR() {
+    if (!arUrl) {
+      alert('AR 觀察功能尚在準備中，請先完成學習單或等待教師通知。');
+      return;
+    }
+
+
+    window.open(arUrl, '_blank');
+  }
+
+
+  function loadQuestions() {
+    const container = document.getElementById('questions');
+
+
+    google.script.run
+      .withSuccessHandler(data => {
+        questions = data;
+        renderQuestions();
+      })
+      .withFailureHandler(error => {
+        container.textContent = '題目載入失敗：' + error.message;
+      })
+      .getQuestions();
+  }
+
+
+  function renderQuestions() {
+    const container = document.getElementById('questions');
+    container.innerHTML = '';
+
+
+    if (!questions.length) {
+      container.textContent = '目前沒有題目，請教師檢查 Google Sheets。';
+      return;
+    }
+
+
+    questions.forEach((q, index) => {
+      const id = String(q['題目編號']);
+      const type = String(q['題型'] || '');
+      const question = document.createElement('div');
+      question.className = 'question';
+
+
+      const title = document.createElement('h3');
+      title.textContent = (index + 1) + '. ' + q['題目'];
+      question.appendChild(title);
+
+
+      if (type.includes('選')) {
+        const options = String(q['選項'] || '')
+          .split(/[,，、]/)
+          .map(x => x.trim())
+          .filter(Boolean);
+
+
+        options.forEach(option => {
+          const label = document.createElement('label');
+          const radio = document.createElement('input');
+
+
+          radio.type = 'radio';
+          radio.name = 'q_' + id;
+          radio.value = option;
+          radio.style.width = 'auto';
+
+
+          radio.addEventListener('change', () => {
+            answers[id] = option;
+          });
+
+
+          label.appendChild(radio);
+          label.appendChild(document.createTextNode(' ' + option));
+          question.appendChild(label);
+        });
+      } else {
+        const textarea = document.createElement('textarea');
+        textarea.rows = 3;
+        textarea.placeholder = '請輸入你的答案';
+
+
+        textarea.value = answers[id] || '';
+        textarea.addEventListener('input', () => {
+          answers[id] = textarea.value;
+        });
+
+
+        question.appendChild(textarea);
+      }
+
+
+      container.appendChild(question);
+    });
+  }
+
+
+  function submitAnswers() {
+    const className = document.getElementById('className').value.trim();
+    const seatNumber = document.getElementById('seatNumber').value.trim();
+    const studentName = document.getElementById('studentName').value.trim();
+    const message = document.getElementById('message');
+    const button = document.getElementById('submitButton');
+
+
+    if (!className || !seatNumber || !studentName) {
+      alert('請完整填寫班級、座號及姓名。');
+      return;
+    }
+
+
+    const result = questions.map(q => ({
+      questionId: String(q['題目編號']),
+      answer: String(answers[String(q['題目編號'])] || '').trim()
+    }));
+
+
+    if (result.some(x => !x.answer)) {
+      alert('還有題目尚未填答，請檢查學習單。');
+      return;
+    }
+
+
+    button.disabled = true;
+    message.textContent = '正在送出……';
+
+
+    google.script.run
+      .withSuccessHandler(text => {
+        message.textContent = text;
+        button.disabled = false;
+      })
+      .withFailureHandler(error => {
+        message.textContent = '送出失敗：' + error.message;
+        button.disabled = false;
+      })
+      .saveAnswers({
+        className,
+        seatNumber,
+        studentName,
+        answers: result
+      });
+  }
+</script>
+</body>
+</html>
